@@ -13,24 +13,25 @@ password="$2"
 hostname="$3"
 ipAddr="$4"
 
-#Fetch and filter IPv6, if Synology won't provide it
-if [[ $ipv6 = "true" ]]; then
-	ip6fetch=$(ip -6 addr show eth0 | grep -oP "$ipv6Regex" || true)
-	ip6Addr=$(if [ -z "$ip6fetch" ]; then echo ""; else echo "${ip6fetch:0:$((${#ip6fetch})) - 7}"; fi) # in case of NULL, echo NULL
-	recType6="AAAA"
+ip6fetch=$(ip -6 addr show eth0 | grep -oP "$ipv6Regex" || true)
+ip6Addr=$(if [ -z "$ip6fetch" ]; then echo ""; else echo "${ip6fetch:0:$((${#ip6fetch})) - 7}"; fi) # in case of NULL, echo NULL
 
-	if [[ -z "$ip6Addr" ]]; then
-		ipv6="false"; 	# if only ipv4 is available
-	fi
-	if [[ $ipAddr =~ $ipv4Regex ]]; then
-		recordType="A";
-	else
+if [[ -z "$ip6Addr" ]]; then
+	ipv6="false"; 	# if only ipv4 is available
+else
+	recType6="AAAA"
+fi
+
+if [[ $ipAddr =~ $ipv4Regex ]]; then
+	recordType="A";
+else
+	if [[ $ipv6 = "true" ]]; then
 		recordType="AAAA";
+	else
 		ipv6="false"; # because, Synology had provided the IPv6
 	fi
-else
-	recordType="A";
 fi
+
 
 # Cloudflare API-Calls for listing entries
 listDnsApi="https://api.cloudflare.com/client/v4/zones/${username}/dns_records?type=${recordType}&name=${hostname}"
